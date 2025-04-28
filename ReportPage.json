@@ -1,0 +1,13 @@
+{
+    "topic":"Ajay Steel",
+    "from":"2024-01-01",
+    "date":"2025-01-10",
+
+    "transactions":[
+        {"id": 101, "type": "Gave", "amount": 15000, "instant": "2024-01-15T10:30:00Z", "description": "Steel purchase for project A", "category": "Building Construction"},
+        {"id": 102, "type": "Gave", "amount": 10000, "instant": "2024-01-18T12:45:00Z", "description": "Steel for maintenance work", "category": "Maintenance"}
+    ]
+
+    
+
+}

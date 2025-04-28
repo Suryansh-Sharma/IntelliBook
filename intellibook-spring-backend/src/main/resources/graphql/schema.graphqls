@@ -1,0 +1,194 @@
+#Query
+type Query{
+    getUserById(id:Int!):UserLoginResDto
+    getCategoriesForUser(userId:Int!):[CategoryDto]
+    getTransactionDetailById(transactionId:Int!):TransactionDto
+    getTransactionByDate(userId:Int!,date:String!,sortBy:String,sortOrder:SORT_ORDER):TransactionByDateDto
+    getTransactionBetweenRange(userId:Int!,topic:String!,fromDate:String!,toDate:String!,pageSize:Int!,
+        pageNo:Int!,sortBy:String,sortOrder:SORT_ORDER):TransactionBetweenRangeDto
+    getYearlyTransactionReport(userId:Int!,fromDate: String!,toDate:String!,topic:String!):YearTransReportDto
+    searchDataRecords(userId:Int!,model:SearchRecordModel!):SearchRecordDto
+#    analytics Api
+    getMonthlyTrends(userId:Int!,fromDate:String!,toDate:String!):[TwoVariableDataTrend]
+    categorySummary(userId:Int!,fromDate:String!,toDate:String!):[CategorySummary]
+    tagMonthlySummary(userId:Int!,tagName:String!,fromDate:String!,toDate:String!):TagSummary
+}
+#Mutations
+type Mutation{
+    addNewUser(addNewUserModel:AddNewUserModel!):UserLoginResDto
+    addNewCategory(userId:Int!,name:String!,description:String):String
+    addNewTagToCategory(categoryId:Int!,name:String!,description:String):String
+    updateCategory(categoryId:Int,name:String!,description:String):String
+    updateTag(tagId:Int!,name:String!,description:String):String
+    addNewTransaction(addNewTransactionModel:AddNewTransactionModel!):String
+    updateTransaction(transactionId:Int!,categoryId:Int!,tags:[String]!,amount:Float!,
+        timestamp:String!,description:String,transactionType:TransactionType!):String
+    deleteTransaction(transactionId:Int!):String
+}
+#Schema's model
+input  AddNewTransactionModel{
+    userId:Int!,categoryId:Int!,tags:[String]!,amount:Float!,
+    timestamp:String!,description:String,transactionType:TransactionType!
+}
+input AddNewUserModel{
+    firstname:String!,
+    lastname:String!,
+    contact:String!,
+    password:String!,
+    email:String,
+    role:ROLE
+}
+input FilterModel {
+    key: String!
+    value: String!
+}
+
+input SearchRecordModel {
+    value: String!
+    filters: [FilterModel]
+    sortBy: String
+    sortOrder: SORT_ORDER
+}
+
+enum ROLE{
+    ADMIN,
+    USER,
+    MANAGER,
+    NOT_AVAILABLE
+}
+enum TransactionType{
+    INCOME,
+    EXPENSE
+}
+enum SORT_ORDER{
+    ASC,
+    DESC
+}
+# DTO
+type UserLoginResDto {
+    id: ID!
+    firstname: String!
+    lastname: String!
+    contact: String!
+    email: String!
+    role: ROLE!
+    createdAt: String!
+    isVerified: Boolean!
+    isActive: Boolean!
+}
+type TransactionDto {
+    id: ID!
+    amount: Float!
+    timestamp: String!
+    createdOn:String
+    description: String
+    transactionType: TransactionType!
+    tags: [TagDto]
+    category: CategoryDto
+    userInfo:UserInfoDto
+}
+
+type CategoryDto{
+    id:ID,
+    name:ID,
+    createdOn:String,
+    tags:[TagDto]
+}
+type TagDto{
+    id:ID,
+    name:String,
+    description:String
+}
+type UserInfoDto{
+    id: ID!
+    firstname: String!
+    lastname: String!
+    contact: String!
+    email: String!
+    role: ROLE!
+}
+type TransactionByDateDto{
+    sortBy:String,
+    sortOrder:String,
+    res:[TransactionDto]!
+    totalRecords:Int
+}
+type TransactionBetweenRangeDto{
+    pageSize:Int,
+    pageNo:Int
+    sortBy:String,
+    sortOrder:String,
+    res:[TransactionDto]!
+    totalRecords:Int
+    totalPages:Int
+}
+type MonthlySummaryDto{
+    name:String,
+    amount:Float,
+    count:Int
+}
+type YearTransReportDto{
+    title:String,
+    fromDate:String!,
+    toDate:String!,
+    totalAmount:Float!,
+    mostFrequentMonth:String!,
+    highestPaidMonth:String!,
+    monthlySummary:[MonthlySummaryDto]!
+    #    userInfo:UserInfoDto
+}
+type SearchRecordDto {
+    value: String
+    categories: [SearchResCategoryDto]
+    transactions: [SearchResTransactionDto]
+    tags: [SearchResTagDto]
+    sortBy: String
+    sortOrder: String
+}
+
+type SearchResCategoryDto {
+    id: ID!
+    name: String
+}
+
+type SearchResTransactionDto {
+    id: ID!
+    amount: Float
+}
+
+type SearchResTagDto {
+    id: ID!
+    name: String
+}
+type FilterDto{
+    key:String
+    value:String
+}
+
+type TwoVariableDataTrend{
+    topic:String
+    amount:Float
+}
+type CategorySummary {
+    categoryName: String
+    totalAmount: Float
+    transactionCount: Int
+    averageCount: Int
+    topTags: [TopTag]
+}
+
+type TopTag {
+    tagName: String
+    tagAmount: Float
+}
+type MonthlyTagSummary{
+    month:String
+    totalAmount:Float
+    categorySummaries:[CategorySummary]
+}
+type TagSummary{
+    tagName:String
+    totalAmount:Float
+    transactionCount:Int
+    monthlySummaries:[MonthlyTagSummary]
+}

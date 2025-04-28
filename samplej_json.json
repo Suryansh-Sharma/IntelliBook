@@ -1,0 +1,19 @@
+{
+    "query":"Ajay",
+    "page_size":15,
+    "page_no":0,
+    "sort_by":"name",
+    "sort_dire":"DESC",
+    "tags":[
+        {"id":12,"name":"Ajay Cement"},
+        {"id":14,"name":"Ajay Steel"}
+    ],
+    "categories":[
+        {"id":56,"name":"Ajay Salary"}
+    ],
+    "transactions":[
+        {"id":34,"type":"Gave","ammount":3000,"instant":"2024-01-21T05:47:26.853Z","description":"Rs 3000 given to Ajay"}
+    ],
+    "total_data":30,
+    "total_pages":2
+}

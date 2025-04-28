@@ -1,0 +1,58 @@
+{
+  "date": "2025-01-16",
+  "totalCategories": 2,
+  "sortBy": "Time:DESC",
+  "totalExpendature": 20000.0,
+  "categories": [
+    {
+      "category": "Food",
+      "totalExpendature": 10000.0,
+      "totalTransactions": 2,
+      "transactions": [
+        {
+          "time": "2025-01-16 12:00:00",
+          "amount": 5000.0,
+          "description": "Lunch",
+          "tags": [
+            { "id": 1, "name": "AJAY" },
+            { "id": 23, "name": "VIJAY" }
+          ]
+        },
+        {
+          "time": "2025-01-16 18:00:00",
+          "amount": 5000.0,
+          "description": "Dinner",
+          "tags": [
+            { "id": 1, "name": "AJAY" },
+            { "id": 23, "name": "VIJAY" }
+          ]
+        }
+      ]
+    },
+    {
+      "category": "Transport",
+      "totalExpendature": 10000.0,
+      "totalTransactions": 2,
+      "transactions": [
+        {
+          "time": "2025-01-16 08:00:00",
+          "amount": 5000.0,
+          "description": "Bus",
+          "tags": [
+            { "id": 1, "name": "AJAY" },
+            { "id": 23, "name": "VIJAY" }
+          ]
+        },
+        {
+          "time": "2025-01-16 20:00:00",
+          "amount": 5000.0,
+          "description": "Train",
+          "tags": [
+            { "id": 1, "name": "AJAY" },
+            { "id": 23, "name": "VIJAY" }
+          ]
+        }
+      ]
+    }
+  ]
+}

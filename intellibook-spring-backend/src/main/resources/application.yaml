@@ -1,0 +1,33 @@
+graphql:
+  playground:
+    endpoint: /graphiql
+    enabled: true
+spring:
+  application:
+    name: IntelliBook-Spring-Boot
+  graphql:
+    graphiql:
+      enabled: true
+      path: /graphiql
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  datasource:
+    url: jdbc:postgresql://localhost:5432/IntelliBook
+    username: postgres
+    password: Suryansh@1904
+#    jpa:
+#        hibernate:
+#          ddl-auto: auto
+#        properties:
+#              hibernate:
+#                dialect: org.hibernate.dialect.MySQL8Dialect
+#
+#logging:
+#  level:
+#    org.hibernate.SQL: DEBUG
+#    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+# sk-28fad1456f8f4190834adc3b6544c248  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
