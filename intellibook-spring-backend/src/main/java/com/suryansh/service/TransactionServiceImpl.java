@@ -436,7 +436,7 @@ public class TransactionServiceImpl implements TransactionService {
                 transaction.getTransactionType(),
                 tags,
                 category,
-                new UserLoginResDto(
+                new UserInfoDto(
                         transaction.getUser().getId(),
                         transaction.getUser().getFirstname(),
                         transaction.getUser().getLastname(),

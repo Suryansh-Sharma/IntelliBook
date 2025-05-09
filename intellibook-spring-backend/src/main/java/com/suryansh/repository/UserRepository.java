@@ -1,5 +1,6 @@
 package com.suryansh.repository;
 
+import com.suryansh.entity.UserDetailEntity;
 import com.suryansh.entity.UserEntity;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,10 +16,14 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     boolean checkUserEmailAndContactIsPresent(@Param("contact") String contact,@Param("email") String email);
 
     @Query("SELECT u from UserEntity u left join FETCH u.userDetail where u.id =:id")
-    Optional<UserEntity> getUserInfoById(int id);
+    Optional<UserEntity> getUserInfoById(long id);
 
     @EntityGraph(attributePaths = {"categories", "userDetail"})
     @Query("select distinct u from UserEntity u where u.id = :userId")
     Optional<UserEntity> findUserWithCategories(@Param("userId") long userId);
+
+    @Query("select u from UserDetailEntity u join fetch u.user where u.contact = :username or u.email = :username")
+    Optional<UserDetailEntity> getUserByContactOrEmail(@Param("username") String username);
+
 
 }

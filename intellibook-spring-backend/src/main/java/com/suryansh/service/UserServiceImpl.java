@@ -1,15 +1,14 @@
 package com.suryansh.service;
 
 import com.suryansh.dto.SearchRecordDto;
+import com.suryansh.dto.UserInfoDto;
 import com.suryansh.dto.UserLoginResDto;
-import com.suryansh.entity.CategoryEntity;
-import com.suryansh.entity.TagEntity;
-import com.suryansh.entity.TransactionEntity;
-import com.suryansh.entity.UserEntity;
+import com.suryansh.entity.*;
 import com.suryansh.exception.SpringIntelliBookEx;
 import com.suryansh.model.AddNewUserModel;
 import com.suryansh.model.SearchRecordModel;
 import com.suryansh.repository.UserRepository;
+import com.suryansh.security.JwtService;
 import com.suryansh.service.interfaces.UserService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Tuple;
@@ -18,6 +17,7 @@ import jakarta.persistence.criteria.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -26,10 +26,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -37,11 +34,15 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final MappingService mappingService;
     private final EntityManager entityManager;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
-    public UserServiceImpl(UserRepository userRepository, MappingService mappingService, EntityManager entityManager) {
+    public UserServiceImpl(UserRepository userRepository, MappingService mappingService, EntityManager entityManager, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.userRepository = userRepository;
         this.mappingService = mappingService;
         this.entityManager = entityManager;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     @Override
@@ -55,7 +56,11 @@ public class UserServiceImpl implements UserService {
         try {
             userEntity = userRepository.saveAndFlush(userEntity);
             logger.info("New User created successfully ");
-            return mappingService.mapUserEntityToLoginDto(userEntity);
+            Map<String,Object> claims = new HashMap<>();
+            claims.put("role", model.getRole());
+            String userId = String.valueOf(userEntity.getId());
+            String jwtToken = jwtService.generateToken(userId, claims);
+            return mappingService.mapUserEntityToLoginDto(userEntity,userEntity.getUserDetail(),jwtToken,"Not Present");
         } catch (Exception e) {
             logger.error("Unable to create new user {}", e.getMessage());
             throw new SpringIntelliBookEx("New User creation failed", e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -63,10 +68,38 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserLoginResDto userById(int id) {
+    public UserLoginResDto handleLoginUser(String username, String password) {
+//        Retrieve User by contact or email
+        UserDetailEntity ud = userRepository.getUserByContactOrEmail(username)
+                .orElseThrow(()->new SpringIntelliBookEx("User not found", "USER_NOT_FOUND", HttpStatus.NOT_FOUND));
+//        Validate User Password
+        if(!passwordEncoder.matches(password, ud.getPassword())) {
+            throw new SpringIntelliBookEx("Wrong password", "WRONG_PASSWORD", HttpStatus.BAD_REQUEST);
+        }
+        String userId = String.valueOf(ud.getId());
+//        Prepare Claims
+        Map<String,Object> claims = new HashMap<>();
+        claims.put("role", ud.getRole());
+        String jwtToken = jwtService.generateToken(userId, claims);
+        UserEntity userEntity = ud.getUser();
+        return mappingService.mapUserEntityToLoginDto(userEntity,ud,jwtToken,"Will Work on Refresh Token in future ");
+    }
+
+    @Override
+    public UserInfoDto userById(long id) {
         UserEntity user = userRepository.getUserInfoById(id)
                 .orElseThrow(() -> new SpringIntelliBookEx("User id not found for id :- " + id, "USER_NOT_FOUND", HttpStatus.NOT_FOUND));
-        return mappingService.mapUserEntityToLoginDto(user);
+        return new UserInfoDto(
+                user.getId(),
+                user.getFirstname(),
+                user.getLastname(),
+                user.getUserDetail().getContact(),
+                user.getUserDetail().getEmail(),
+                user.getUserDetail().getRole(),
+                null,
+                false,
+                false
+        );
     }
 
     @Override
@@ -195,6 +228,8 @@ public class UserServiceImpl implements UserService {
 
         return res;
     }
+
+
 
     private SearchRecordDto parseTupleListToSearchRecordDto(List<Tuple> tupleList) {
         SearchRecordDto searchRecordDto = new SearchRecordDto();

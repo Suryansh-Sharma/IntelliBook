@@ -15,7 +15,7 @@ public record TransactionFullDto(
         TransactionEntity.TransactionType transactionType,
         List<TagDto> tags,
         CategoryDto category,
-        UserLoginResDto userInfo
+        UserInfoDto userInfo
 ) {
     public record TagDto(long id, String name, String description) {}
 }

@@ -1,13 +1,12 @@
 package com.suryansh.service;
 
+import com.suryansh.dto.CategoryDto;
 import com.suryansh.entity.CategoryEntity;
 import com.suryansh.entity.TagEntity;
 import com.suryansh.entity.UserEntity;
 import com.suryansh.exception.SpringIntelliBookEx;
-import com.suryansh.dto.CategoryDto;
 import com.suryansh.repository.CategoryRepository;
 import com.suryansh.repository.TagRepository;
-import com.suryansh.repository.UserRepository;
 import com.suryansh.service.interfaces.CategoryService;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -27,20 +26,18 @@ import java.util.List;
 public class CategoryServiceImpl implements CategoryService {
     private static final Logger logger = LoggerFactory.getLogger(CategoryServiceImpl.class);
     private final CategoryRepository categoryRepository;
-    private final UserRepository userRepository;
     private final TagRepository tagRepository;
+    private final CachingService cachingService;
 
-    public CategoryServiceImpl(CategoryRepository categoryRepository, UserRepository userRepository, TagRepository tagRepository) {
+    public CategoryServiceImpl(CategoryRepository categoryRepository, TagRepository tagRepository, CachingService cachingService) {
         this.categoryRepository = categoryRepository;
-        this.userRepository = userRepository;
         this.tagRepository = tagRepository;
+        this.cachingService = cachingService;
     }
 
     @Override
-    public String addNewCategory(int userID, String name, String description) {
-        UserEntity user = userRepository.findUserWithCategories(userID)
-                .orElseThrow(()->new SpringIntelliBookEx("User id not found for id :- "+userID,
-                        "USER_NOT_FOUND", HttpStatus.NOT_FOUND));
+    public String addNewCategory(long userID, String name, String description) {
+        UserEntity user = cachingService.fetchUser(userID);
         user.getCategories().
                 forEach(c->{
                     if (c.getName().equals(name)) {
@@ -67,7 +64,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public List<CategoryDto> categoriesForUser(int userID) {
+    public List<CategoryDto> categoriesForUser(long userID) {
         List<CategoryEntity>categoryEntities = categoryRepository.getCategoriesForUser(userID);
         return categoryEntities.stream()
                 .map(c-> {

@@ -5,9 +5,9 @@ import com.suryansh.dto.CategoryDto;
 import java.util.List;
 
 public interface CategoryService {
-    String addNewCategory(int userID, String name, String description);
+    String addNewCategory(long userID, String name, String description);
 
-    List<CategoryDto> categoriesForUser(int userID);
+    List<CategoryDto> categoriesForUser(long userID);
 
     String addNewTag(long categoryId, String name, String description);
 

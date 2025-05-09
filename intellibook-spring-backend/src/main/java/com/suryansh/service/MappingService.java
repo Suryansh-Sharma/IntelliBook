@@ -1,23 +1,34 @@
 package com.suryansh.service;
 
+import com.suryansh.dto.UserLoginResDto;
 import com.suryansh.entity.UserDetailEntity;
 import com.suryansh.entity.UserEntity;
 import com.suryansh.model.AddNewUserModel;
-import com.suryansh.dto.UserLoginResDto;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 @Service
 public class MappingService {
+    @Value("${expiration_time}")
+    private String EXPIRATION_TIME;
+    private final PasswordEncoder passwordEncoder;
+
+    public MappingService(PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
+
     public UserEntity mapUserModelToEntity(AddNewUserModel model) {
         ZonedDateTime zonedDateTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
         UserDetailEntity userDetailEntity = UserDetailEntity.builder()
                 .contact(model.getContact())
                 .email(model.getEmail())
-                .password(model.getPassword())
+                .password(passwordEncoder.encode(model.getPassword()))
                 .role(model.getRole())
                 .createdAt(zonedDateTime.toInstant())
                 .isActive(false)
@@ -36,8 +47,23 @@ public class MappingService {
 
     }
 
-    public UserLoginResDto mapUserEntityToLoginDto(UserEntity user) {
+    public UserLoginResDto mapUserEntityToLoginDto(UserEntity user,UserDetailEntity userDetail,
+                                                   String token,String rt) {
         LocalDateTime localDateTime = LocalDateTime.ofInstant(user.getUserDetail().getCreatedAt(), ZoneId.of("Asia/Kolkata"));
+        ZonedDateTime nowInIndia = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+        UserLoginResDto.JwtToken jwtToken = new UserLoginResDto.JwtToken(
+                token,
+                "Token will expire in "+EXPIRATION_TIME+" minutes"
+        );
+        UserLoginResDto.RefreshToken refreshToken = new UserLoginResDto.RefreshToken(
+                rt,
+                nowInIndia.toInstant(),
+                nowInIndia.plusDays(1).toInstant()
+        );
+        UserLoginResDto.Credentials credentials= new UserLoginResDto.Credentials(
+            jwtToken,
+                refreshToken
+        );
         return new UserLoginResDto(
                 user.getId(),
                 user.getFirstname(),
@@ -47,7 +73,8 @@ public class MappingService {
                 user.getUserDetail().getRole(),
                 localDateTime,
                 user.getUserDetail().isVerified(),
-                user.getUserDetail().isActive()
+                user.getUserDetail().isActive(),
+                credentials
         );
     }
 }

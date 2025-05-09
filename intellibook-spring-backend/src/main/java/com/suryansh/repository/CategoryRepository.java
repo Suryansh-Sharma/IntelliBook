@@ -13,5 +13,5 @@ import java.util.List;
 public interface CategoryRepository extends JpaRepository<CategoryEntity, Long> {
     @EntityGraph(attributePaths = {"tags"})
     @Query("select  c from CategoryEntity c left join fetch c.tags where c.user.id = :userId")
-    List<CategoryEntity> getCategoriesForUser(@Param("userId") int userID);
+    List<CategoryEntity> getCategoriesForUser(@Param("userId") long userID);
 }

@@ -1,5 +1,6 @@
 package com.suryansh.service;
 
+import com.suryansh.dto.analytics.CategorySpecificSummary;
 import com.suryansh.dto.analytics.CategorySummary;
 import com.suryansh.dto.analytics.TagSummary;
 import com.suryansh.dto.analytics.TwoVariableDataTrend;
@@ -116,6 +117,20 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         tagSummary.setTransactionCount(totalTransactionCount);
         tagSummary.setMonthlySummaries(new ArrayList<>(monthlyMap.values()));
         return tagSummary;
+    }
+
+    @Override
+    public CategorySpecificSummary genSpecificCategorySummary(long userId, long categoryId) {
+        List<CategorySpecificSummary.MonthlySpending> monthlySpending = transactionRepository
+                .getTransactionMonSumForCate(userId,categoryId).stream()
+                .map(row -> new CategorySpecificSummary.MonthlySpending(
+                        (String) row[0],
+                        (BigDecimal) row[1]
+                )).toList();
+
+        CategorySpecificSummary summary = transactionRepository.genCategorySummary(userId, categoryId);
+        summary.setMonthlySpending(monthlySpending);
+        return summary;
     }
 
 

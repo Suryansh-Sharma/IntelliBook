@@ -1,5 +1,6 @@
 package com.suryansh.repository;
 
+import com.suryansh.dto.analytics.CategorySpecificSummary;
 import com.suryansh.entity.TransactionEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -209,6 +210,44 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
             	MONTH_ORDER;
             
             """, nativeQuery = true)
-    List<Object[]> getCategorySummaryByTag(@Param("userId") long userId,@Param("start") Instant start,
-                                           @Param("end") Instant end,@Param("tagName") String tagName);
+    List<Object[]> getCategorySummaryByTag(@Param("userId") long userId, @Param("start") Instant start,
+                                           @Param("end") Instant end, @Param("tagName") String tagName);
+
+    @Query("""
+                SELECT new com.suryansh.dto.analytics.CategorySpecificSummary(
+                    1,
+                    c.name,
+                    SUM(t.amount),
+                    COUNT(t),
+                    MIN(t.timestamp),
+                    MAX(t.timestamp),
+                    MAX(t.amount),
+                    MIN(t.amount),
+                    AVG(t.amount),
+                    null
+                )
+                FROM TransactionEntity t
+                JOIN t.category c
+                WHERE t.user.id = :userId AND c.id = :categoryId
+                Group by c.name
+            """)
+    CategorySpecificSummary genCategorySummary(@Param("userId") Long userId, @Param("categoryId") Long categoryId);
+
+
+    @Query(value = """
+                    SELECT
+                    	TO_CHAR(T.TIMESTAMP, 'Month') AS MONTH_NAME,
+                    	SUM(T.AMOUNT) MONTHLY_SPENT
+                    FROM
+                    	TRANSACTION T
+                    WHERE
+                    	T.USER_ID = :user_id
+                    	AND T.CATEGORY_ID = :category_id
+                    GROUP BY
+                    	TO_CHAR(T.TIMESTAMP, 'Month'),
+                    	EXTRACT(MONTH FROM T.TIMESTAMP)
+                    ORDER BY
+                    	EXTRACT(MONTH FROM T.TIMESTAMP)
+            """, nativeQuery = true)
+    List<Object[]> getTransactionMonSumForCate(@Param("user_id") long userId, @Param("category_id") long categoryId);
 }

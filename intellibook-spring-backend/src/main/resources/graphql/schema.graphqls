@@ -1,22 +1,24 @@
 #Query
 type Query{
     getUserById(id:Int!):UserLoginResDto
-    getCategoriesForUser(userId:Int!):[CategoryDto]
+    getCategoriesForUser:[CategoryDto]
     getTransactionDetailById(transactionId:Int!):TransactionDto
-    getTransactionByDate(userId:Int!,date:String!,sortBy:String,sortOrder:SORT_ORDER):TransactionByDateDto
-    getTransactionBetweenRange(userId:Int!,topic:String!,fromDate:String!,toDate:String!,pageSize:Int!,
+    getTransactionByDate(date:String!,sortBy:String,sortOrder:SORT_ORDER):TransactionByDateDto
+    getTransactionBetweenRange(,topic:String!,fromDate:String!,toDate:String!,pageSize:Int!,
         pageNo:Int!,sortBy:String,sortOrder:SORT_ORDER):TransactionBetweenRangeDto
-    getYearlyTransactionReport(userId:Int!,fromDate: String!,toDate:String!,topic:String!):YearTransReportDto
-    searchDataRecords(userId:Int!,model:SearchRecordModel!):SearchRecordDto
+    getYearlyTransactionReport(,fromDate: String!,toDate:String!,topic:String!):YearTransReportDto
+    searchDataRecords(,model:SearchRecordModel!):SearchRecordDto
 #    analytics Api
-    getMonthlyTrends(userId:Int!,fromDate:String!,toDate:String!):[TwoVariableDataTrend]
-    categorySummary(userId:Int!,fromDate:String!,toDate:String!):[CategorySummary]
-    tagMonthlySummary(userId:Int!,tagName:String!,fromDate:String!,toDate:String!):TagSummary
+    getMonthlyTrends(fromDate:String!,toDate:String!):[TwoVariableDataTrend]
+    categorySummary(fromDate:String!,toDate:String!):[CategorySummary]
+    tagMonthlySummary(tagName:String!,fromDate:String!,toDate:String!):TagSummary
+    categorySpecificSummary(categoryId: Int!): CategorySpecificSummary
 }
 #Mutations
 type Mutation{
     addNewUser(addNewUserModel:AddNewUserModel!):UserLoginResDto
-    addNewCategory(userId:Int!,name:String!,description:String):String
+    login(username:String!,password:String!):UserLoginResDto
+    addNewCategory(name:String!,description:String):String
     addNewTagToCategory(categoryId:Int!,name:String!,description:String):String
     updateCategory(categoryId:Int,name:String!,description:String):String
     updateTag(tagId:Int!,name:String!,description:String):String
@@ -75,6 +77,7 @@ type UserLoginResDto {
     createdAt: String!
     isVerified: Boolean!
     isActive: Boolean!
+    credentials:Credentials!
 }
 type TransactionDto {
     id: ID!
@@ -191,4 +194,34 @@ type TagSummary{
     totalAmount:Float
     transactionCount:Int
     monthlySummaries:[MonthlyTagSummary]
+}
+type CategorySpecificSummary {
+    categoryId: ID!
+    categoryName: String!
+    totalSpent: Float!
+    firstTransactionDate: String!
+    lastTransactionDate: String!
+    highestTransaction: Float!
+    lowestTransaction: Float!
+    averageTransactionAmount: Float!
+    monthlySpending: [MonthlySpending!]!
+}
+
+type MonthlySpending {
+    month: String!
+    amount: Float!
+}
+
+type Credentials {
+    jwtToken:JWTToken!
+    refreshToken:RefreshToken!
+}
+type JWTToken{
+    token:String!
+    validity:String
+}
+type RefreshToken{
+    token:String!
+    generatedOn:String!
+    expiresOn:String!
 }

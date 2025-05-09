@@ -3,6 +3,8 @@ graphql:
     endpoint: /graphiql
     enabled: true
 spring:
+  config:
+    import: optional:classpath:secrets.yaml
   application:
     name: IntelliBook-Spring-Boot
   graphql:
