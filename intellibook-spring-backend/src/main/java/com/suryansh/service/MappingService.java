@@ -1,6 +1,7 @@
 package com.suryansh.service;
 
 import com.suryansh.dto.UserLoginResDto;
+import com.suryansh.entity.RefreshTokenEntity;
 import com.suryansh.entity.UserDetailEntity;
 import com.suryansh.entity.UserEntity;
 import com.suryansh.model.AddNewUserModel;
@@ -8,7 +9,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -47,18 +47,17 @@ public class MappingService {
 
     }
 
-    public UserLoginResDto mapUserEntityToLoginDto(UserEntity user,UserDetailEntity userDetail,
-                                                   String token,String rt) {
+    public UserLoginResDto mapUserEntityToLoginDto(UserEntity user, UserDetailEntity userDetail,
+                                                   String token, RefreshTokenEntity rt) {
         LocalDateTime localDateTime = LocalDateTime.ofInstant(user.getUserDetail().getCreatedAt(), ZoneId.of("Asia/Kolkata"));
-        ZonedDateTime nowInIndia = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
         UserLoginResDto.JwtToken jwtToken = new UserLoginResDto.JwtToken(
                 token,
                 "Token will expire in "+EXPIRATION_TIME+" minutes"
         );
         UserLoginResDto.RefreshToken refreshToken = new UserLoginResDto.RefreshToken(
-                rt,
-                nowInIndia.toInstant(),
-                nowInIndia.plusDays(1).toInstant()
+                rt.getToken(),
+                rt.getCreatedAt(),
+                rt.getExpiresAt()
         );
         UserLoginResDto.Credentials credentials= new UserLoginResDto.Credentials(
             jwtToken,

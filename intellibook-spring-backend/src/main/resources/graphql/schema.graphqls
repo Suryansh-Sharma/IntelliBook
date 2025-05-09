@@ -18,6 +18,7 @@ type Query{
 type Mutation{
     addNewUser(addNewUserModel:AddNewUserModel!):UserLoginResDto
     login(username:String!,password:String!):UserLoginResDto
+    regenerateJwtFromRefreshToken(refreshToken:String!):JWTToken
     addNewCategory(name:String!,description:String):String
     addNewTagToCategory(categoryId:Int!,name:String!,description:String):String
     updateCategory(categoryId:Int,name:String!,description:String):String

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
+import java.util.List;
 
 @Entity
 @AllArgsConstructor
@@ -35,5 +36,7 @@ public class UserDetailEntity {
         NOT_AVAILABLE
     }
 
+    @OneToMany(mappedBy = "userDetail",cascade = CascadeType.ALL,fetch = FetchType.LAZY)
+    private List<RefreshTokenEntity> refreshTokens;
 
 }

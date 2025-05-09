@@ -16,4 +16,6 @@ public interface UserService {
     SearchRecordDto searchRecords(long userId, SearchRecordModel searchRecordModel);
 
     UserLoginResDto handleLoginUser(String username, String password);
+
+    UserLoginResDto.JwtToken reGenToken(String refreshToken);
 }

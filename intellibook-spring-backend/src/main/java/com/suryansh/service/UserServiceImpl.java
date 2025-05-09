@@ -7,6 +7,7 @@ import com.suryansh.entity.*;
 import com.suryansh.exception.SpringIntelliBookEx;
 import com.suryansh.model.AddNewUserModel;
 import com.suryansh.model.SearchRecordModel;
+import com.suryansh.repository.RefreshTokenRepo;
 import com.suryansh.repository.UserRepository;
 import com.suryansh.security.JwtService;
 import com.suryansh.service.interfaces.UserService;
@@ -16,6 +17,7 @@ import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -36,14 +39,20 @@ public class UserServiceImpl implements UserService {
     private final EntityManager entityManager;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RefreshTokenRepo refreshTokenRepo;
 
-    public UserServiceImpl(UserRepository userRepository, MappingService mappingService, EntityManager entityManager, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public UserServiceImpl(UserRepository userRepository, MappingService mappingService, EntityManager entityManager, PasswordEncoder passwordEncoder, JwtService jwtService, RefreshTokenRepo refreshTokenRepo) {
         this.userRepository = userRepository;
         this.mappingService = mappingService;
         this.entityManager = entityManager;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.refreshTokenRepo = refreshTokenRepo;
     }
+    @Value("${expiration_time}")
+    private String EXPIRATION_TIME;
+    @Value("${refresh_token_validity}")
+    private long REFRESH_TOKEN_TIME;
 
     @Override
     public UserLoginResDto addNewUser(AddNewUserModel model) {
@@ -56,11 +65,17 @@ public class UserServiceImpl implements UserService {
         try {
             userEntity = userRepository.saveAndFlush(userEntity);
             logger.info("New User created successfully ");
-            Map<String,Object> claims = new HashMap<>();
+            Map<String, Object> claims = new HashMap<>();
             claims.put("role", model.getRole());
             String userId = String.valueOf(userEntity.getId());
             String jwtToken = jwtService.generateToken(userId, claims);
-            return mappingService.mapUserEntityToLoginDto(userEntity,userEntity.getUserDetail(),jwtToken,"Not Present");
+            RefreshTokenEntity refreshTokenEntity = generateRefreshToken(userEntity.getUserDetail());
+            try{
+                refreshTokenRepo.save(refreshTokenEntity);
+            }catch (Exception e){
+                throw new SpringIntelliBookEx("Refresh token generation failed", e.getMessage(), HttpStatus.BAD_REQUEST);
+            }
+            return mappingService.mapUserEntityToLoginDto(userEntity, userEntity.getUserDetail(), jwtToken, refreshTokenEntity);
         } catch (Exception e) {
             logger.error("Unable to create new user {}", e.getMessage());
             throw new SpringIntelliBookEx("New User creation failed", e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -71,18 +86,49 @@ public class UserServiceImpl implements UserService {
     public UserLoginResDto handleLoginUser(String username, String password) {
 //        Retrieve User by contact or email
         UserDetailEntity ud = userRepository.getUserByContactOrEmail(username)
-                .orElseThrow(()->new SpringIntelliBookEx("User not found", "USER_NOT_FOUND", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new SpringIntelliBookEx("User not found", "USER_NOT_FOUND", HttpStatus.NOT_FOUND));
 //        Validate User Password
-        if(!passwordEncoder.matches(password, ud.getPassword())) {
+        if (!passwordEncoder.matches(password, ud.getPassword())) {
             throw new SpringIntelliBookEx("Wrong password", "WRONG_PASSWORD", HttpStatus.BAD_REQUEST);
         }
         String userId = String.valueOf(ud.getId());
 //        Prepare Claims
-        Map<String,Object> claims = new HashMap<>();
+        Map<String, Object> claims = new HashMap<>();
         claims.put("role", ud.getRole());
         String jwtToken = jwtService.generateToken(userId, claims);
         UserEntity userEntity = ud.getUser();
-        return mappingService.mapUserEntityToLoginDto(userEntity,ud,jwtToken,"Will Work on Refresh Token in future ");
+        RefreshTokenEntity refreshTokenEntity = generateRefreshToken(ud);
+        try{
+            refreshTokenRepo.save(refreshTokenEntity);
+        }catch (Exception e){
+            throw new SpringIntelliBookEx("Refresh token generation failed", e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+        return mappingService.mapUserEntityToLoginDto(userEntity, ud, jwtToken, refreshTokenEntity);
+    }
+
+    @Override
+    public UserLoginResDto.JwtToken reGenToken(String token) {
+        ZonedDateTime nowInIndia = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+        RefreshTokenEntity refreshToken = refreshTokenRepo.findById(token)
+                .orElseThrow(() -> new SpringIntelliBookEx("Refresh Token not found", "REFRESH_TOKEN_NOT_FOUND", HttpStatus.NOT_FOUND));
+        // Check refresh token is expired or not.
+        if (refreshToken.getExpiresAt().isBefore(nowInIndia.toInstant())) {
+            try {
+                refreshTokenRepo.deleteById(token);
+            } catch (Exception e) {
+                logger.error("Unable to delete refresh token {}", e.getMessage());
+                throw new SpringIntelliBookEx("Unable to delete refresh token", "REFRESH_TOKEN_NOT_FOUND", HttpStatus.NOT_FOUND);
+            }
+            throw new SpringIntelliBookEx("Refresh Token expired, Regen by LOGIN", "REFRESH_TOKEN_EXPIRED", HttpStatus.BAD_REQUEST);
+        }
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", refreshToken.getUserDetail().getRole());
+        String userId = String.valueOf(refreshToken.getUserDetail().getId());
+        String jwtToken = jwtService.generateToken(userId, claims);
+        return new UserLoginResDto.JwtToken(
+                jwtToken,
+                "Token will expire in " + EXPIRATION_TIME + " minutes"
+        );
     }
 
     @Override
@@ -157,8 +203,9 @@ public class UserServiceImpl implements UserService {
                     predicates.add(cb.between(transactionRoot.get("timestamp"), fromDateInstant, toDateInstant));
                     isTransactionFilterApplied = true;
                 }
-                default -> throw new SpringIntelliBookEx("Wrong Filter Key selection use only :- filter.AllRecord, filter.Tags, filter.Categories, filter.AmountRange, filter.DateRange ",
-                        "WRONG_FILTER_KEY", HttpStatus.BAD_REQUEST);
+                default ->
+                        throw new SpringIntelliBookEx("Wrong Filter Key selection use only :- filter.AllRecord, filter.Tags, filter.Categories, filter.AmountRange, filter.DateRange ",
+                                "WRONG_FILTER_KEY", HttpStatus.BAD_REQUEST);
 
             }
         }
@@ -228,7 +275,6 @@ public class UserServiceImpl implements UserService {
 
         return res;
     }
-
 
 
     private SearchRecordDto parseTupleListToSearchRecordDto(List<Tuple> tupleList) {
@@ -321,5 +367,15 @@ public class UserServiceImpl implements UserService {
 
         dto.setTags(new ArrayList<>(tagSet));
         return dto;
+    }
+
+    private RefreshTokenEntity generateRefreshToken(UserDetailEntity userDetailEntity) {
+        ZonedDateTime nowInIndia = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+        RefreshTokenEntity refreshTokenEntity = new RefreshTokenEntity();
+        refreshTokenEntity.setToken(UUID.randomUUID().toString());
+        refreshTokenEntity.setCreatedAt(nowInIndia.toInstant());
+        refreshTokenEntity.setExpiresAt(nowInIndia.plusDays(REFRESH_TOKEN_TIME).toInstant());
+        refreshTokenEntity.setUserDetail(userDetailEntity);
+        return refreshTokenEntity;
     }
 }

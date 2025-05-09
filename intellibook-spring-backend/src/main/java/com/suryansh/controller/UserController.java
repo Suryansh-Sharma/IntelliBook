@@ -40,6 +40,11 @@ public class UserController {
         return userService.handleLoginUser(username,password);
     }
 
+    @MutationMapping
+    public UserLoginResDto.JwtToken regenerateJwtFromRefreshToken(@Argument String refreshToken) {
+        return userService.reGenToken(refreshToken);
+    }
+
     @QueryMapping
     public UserInfoDto getUserById(@Argument long id) {
         return userService.userById(id);
