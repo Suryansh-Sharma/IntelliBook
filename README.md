@@ -8,6 +8,9 @@
 
 Explore the initial design concept: [**IntelliBook UI**](https://app.flutterflow.io/share/intelli-book-9izfql?)
 
+## API Documentation
+
+Explore Java Spring Boot API: [**Postman Documentation**](https://documenter.getpostman.com/view/19485910/2sB2j989cE)
 ----------
 
 ## 🚀 Planned Features
