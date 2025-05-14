@@ -45,6 +45,11 @@ public class UserController {
         return userService.reGenToken(refreshToken);
     }
 
+    @MutationMapping
+    public String logout(@Argument String refreshToken,@Argument String jwtToken) {
+        return userService.handleLogoutUser(refreshToken,jwtToken);
+    }
+
     @QueryMapping
     public UserInfoDto getUserById(@Argument long id) {
         return userService.userById(id);

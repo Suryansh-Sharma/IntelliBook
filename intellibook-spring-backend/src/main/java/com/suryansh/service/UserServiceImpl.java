@@ -7,6 +7,7 @@ import com.suryansh.entity.*;
 import com.suryansh.exception.SpringIntelliBookEx;
 import com.suryansh.model.AddNewUserModel;
 import com.suryansh.model.SearchRecordModel;
+import com.suryansh.repository.InvalidJwtRepo;
 import com.suryansh.repository.RefreshTokenRepo;
 import com.suryansh.repository.UserRepository;
 import com.suryansh.security.JwtService;
@@ -40,14 +41,18 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RefreshTokenRepo refreshTokenRepo;
+    private final InvalidJwtRepo invalidJwtRepo;
+    private final CachingService cachingService;
 
-    public UserServiceImpl(UserRepository userRepository, MappingService mappingService, EntityManager entityManager, PasswordEncoder passwordEncoder, JwtService jwtService, RefreshTokenRepo refreshTokenRepo) {
+    public UserServiceImpl(UserRepository userRepository, MappingService mappingService, EntityManager entityManager, PasswordEncoder passwordEncoder, JwtService jwtService, RefreshTokenRepo refreshTokenRepo, InvalidJwtRepo invalidJwtRepo, CachingService cachingService) {
         this.userRepository = userRepository;
         this.mappingService = mappingService;
         this.entityManager = entityManager;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.refreshTokenRepo = refreshTokenRepo;
+        this.invalidJwtRepo = invalidJwtRepo;
+        this.cachingService = cachingService;
     }
     @Value("${expiration_time}")
     private String EXPIRATION_TIME;
@@ -129,6 +134,26 @@ public class UserServiceImpl implements UserService {
                 jwtToken,
                 "Token will expire in " + EXPIRATION_TIME + " minutes"
         );
+    }
+
+    @Override
+    public String handleLogoutUser(String refreshToken, String jwtToken) {
+        RefreshTokenEntity refreshTokenEntity = refreshTokenRepo.findById(refreshToken)
+                .orElseThrow(()->new SpringIntelliBookEx("Refresh Token not found", "REFRESH_TOKEN_NOT_FOUND", HttpStatus.NOT_FOUND));
+        ZonedDateTime nowInIndia = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+        InvalidJwtEntity invalidJwt = new InvalidJwtEntity();
+        invalidJwt.setToken(jwtToken);
+        invalidJwt.setLogoutAt(nowInIndia.toInstant());
+        invalidJwt.setExpiresAt(jwtService.getTokenExpirationTime(jwtToken));
+        try{
+            boolean isJwtBlacklisted= cachingService.addInvalidJwt(jwtToken,invalidJwt);
+            System.out.println("Token Blacklisted: " + isJwtBlacklisted);
+            refreshTokenRepo.deleteById(refreshTokenEntity.getToken());
+            return "User has been logged out successfully !!";
+        }catch (Exception e){
+            logger.error("Unable to logout user {}", e.getMessage());
+            throw new SpringIntelliBookEx("Unable to logout", e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 
     @Override

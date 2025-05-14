@@ -1,6 +1,8 @@
 package com.suryansh.security;
 
 import com.suryansh.exception.SpringIntelliBookEx;
+import com.suryansh.service.CachingService;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,10 +21,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserInfoService userInfoService;
+    private final CachingService cachingService;
 
-    public JwtAuthFilter(JwtService jwtService, UserInfoService userInfoService) {
+    public JwtAuthFilter(JwtService jwtService, UserInfoService userInfoService, CachingService cachingService) {
         this.jwtService = jwtService;
         this.userInfoService = userInfoService;
+        this.cachingService = cachingService;
     }
 
     @Override
@@ -44,6 +48,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
 
             if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                // Check token is logout or not
+                if (cachingService.isTokenInValid(token)){
+                    throw new ExpiredJwtException(null, null, "The token has been blacklisted or expired");
+                }
                 // Load user details from the user service
                 UserDetails userDetails = userInfoService.loadUserByUsername(userId);
 

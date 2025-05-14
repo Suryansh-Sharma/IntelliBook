@@ -18,4 +18,6 @@ public interface UserService {
     UserLoginResDto handleLoginUser(String username, String password);
 
     UserLoginResDto.JwtToken reGenToken(String refreshToken);
+
+    String handleLogoutUser(String refreshToken, String jwtToken);
 }

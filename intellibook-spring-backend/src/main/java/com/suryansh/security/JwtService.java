@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Date;
@@ -66,5 +67,11 @@ public class JwtService {
     public Boolean validateToken(String token, String id) {
         final String userId = extractUserId(token);
         return userId.equals(id) && !isTokenExpired(token);
+    }
+
+    public Instant getTokenExpirationTime(String token) {
+        Claims claims = extractAllClaims(token);
+        Date expiration = claims.getExpiration();
+        return expiration.toInstant();
     }
 }
